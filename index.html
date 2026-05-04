@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="en" class="dark scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TrackSpy - Advanced Device Recovery & Monitoring</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Plus Jakarta Sans', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: {
+                            400: '#34d399',
+                            500: '#10b981',
+                            600: '#059669',
+                        },
+                        accent: {
+                            500: '#00C896',
+                        },
+                        dark: {
+                            900: '#050a08', // Deepest background
+                            800: '#0a120e', // Card background
+                            700: '#111d17', // Lighter borders/cards
+                        },
+                        light: {
+                            50: '#f4fbf8', // Lightest background
+                            100: '#ebf7f3', // Card background
+                            200: '#d6ede7', // Borders
+                        }
+                    },
+                    animation: {
+                        'marquee': 'marquee 25s linear infinite',
+                        'ping-slow': 'ping 2s cubic-bezier(0, 0, 0.2, 1) infinite',
+                        'float': 'float 6s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        marquee: {
+                            '0%': { transform: 'translateX(0%)' },
+                            '100%': { transform: 'translateX(-50%)' },
+                        },
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Custom Utilities & Overrides */
+        body {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* Hide scrollbar for a cleaner look but allow scrolling */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 4px; }
+        .dark ::-webkit-scrollbar-thumb { background: #27272a; }
+        ::-webkit-scrollbar-thumb:hover { background: #10b981; }
+
+        /* Custom Marquee Mask */
+        .marquee-mask {
+            mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+            -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+        }
+
+        /* Tab Transitions */
+        .tab-content {
+            display: none;
+            opacity: 0;
+            transform: translateY(15px);
+            transition: opacity 0.4s ease, transform 0.4s ease;
+        }
+        .tab-content.active {
+            display: block;
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Reveal Animations */
+        .reveal-up {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        .reveal-up.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Toggle Switch */
+        .toggle-checkbox:checked { right: 0; border-color: #10b981; }
+        .toggle-checkbox:checked + .toggle-label { background-color: #10b981; }
+        
+        /* Glass Morphism */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .light .glass-panel {
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        /* Focus rings */
+        *:focus-visible {
+            outline: 2px solid #10b981;
+            outline-offset: 2px;
+        }
+    </style>
+</head>
+<body class="bg-light-50 text-gray-900 dark:bg-dark-900 dark:text-gray-100 transition-colors duration-300 flex flex-col min-h-screen">
+
+    <!-- Skip Link -->
+    <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-primary-500 text-white px-4 py-2 rounded-lg z-[9999] font-bold">Skip to content</a>
+
+    <!-- Top Bar -->
+    <div class="bg-white dark:bg-dark-800 border-b border-gray-200 dark:border-dark-700 py-2 px-4 sm:px-6 lg:px-8 text-xs font-medium transition-colors duration-300">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-3">
+            
+            <!-- Marquee -->
+            <div class="flex-1 overflow-hidden marquee-mask w-full sm:w-auto relative flex items-center h-6">
+                <div class="flex whitespace-nowrap animate-marquee w-max hover:[animation-play-state:paused]">
+                    <span class="mx-4 text-gray-600 dark:text-gray-400"><i class="fa-solid fa-bolt text-primary-500 mr-2"></i><strong class="text-primary-600 dark:text-primary-400">Trusted. Tested. Proven Fast.</strong> Experience reliable service with speed you can count on.</span>
+                    <span class="mx-4 text-gray-600 dark:text-gray-400"><i class="fa-solid fa-shield-halved text-primary-500 mr-2"></i><strong class="text-primary-600 dark:text-primary-400">Bank-Grade Security.</strong> End-to-end encryption for all your monitored data.</span>
+                    <span class="mx-4 text-gray-600 dark:text-gray-400"><i class="fa-solid fa-bolt text-primary-500 mr-2"></i><strong class="text-primary-600 dark:text-primary-400">Trusted. Tested. Proven Fast.</strong> Experience reliable service with speed you can count on.</span>
+                    <span class="mx-4 text-gray-600 dark:text-gray-400"><i class="fa-solid fa-shield-halved text-primary-500 mr-2"></i><strong class="text-primary-600 dark:text-primary-400">Bank-Grade Security.</strong> End-to-end encryption for all your monitored data.</span>
+                </div>
+            </div>
+
+            <!-- Controls -->
+            <div class="flex items-center gap-4 shrink-0">
+                <div class="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                    <i class="fa-solid fa-globe text-primary-500"></i>
+                    <select aria-label="Select Language" class="bg-transparent outline-none cursor-pointer hover:text-gray-900 dark:hover:text-white transition-colors">
+                        <option class="dark:bg-dark-800">English</option>
+                        <option class="dark:bg-dark-800">French</option>
+                        <option class="dark:bg-dark-800">German</option>
+                        <option class="dark:bg-dark-800">Spanish</option>
+                    </select>
+                </div>
+                
+                <!-- Theme Toggle -->
+                <button id="theme-toggle" class="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-primary-500 transition-colors" aria-label="Toggle Dark Mode">
+                    <i id="theme-icon" class="fa-solid fa-moon"></i>
+                    <span id="theme-text" class="hidden sm:inline">Dark</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <header class="sticky top-0 z-50 bg-white/80 dark:bg-dark-900/80 backdrop-blur-lg border-b border-gray-200 dark:border-dark-700 transition-all duration-300">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-20">
+                <!-- Logo -->
+                <a href="#" class="flex items-center gap-2 group nav-trigger" data-target="home">
+                    <div class="w-10 h-10 rounded-xl bg-primary-500/10 dark:bg-primary-500/20 flex items-center justify-center text-primary-500 group-hover:scale-110 transition-transform">
+                        <i class="fa-solid fa-location-crosshairs text-xl"></i>
+                    </div>
+                    <span class="font-display font-bold text-2xl tracking-tight text-gray-900 dark:text-white">Track<span class="text-primary-500">Spy</span></span>
+                </a>
+
+                <!-- Desktop Nav -->
+                <nav class="hidden md:flex items-center gap-1">
+                    <button class="nav-btn px-4 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 transition-all active-nav" data-target="home">
+                        <i class="fa-solid fa-house-signal mr-2 opacity-70"></i>Home
+                    </button>
+                    <button class="nav-btn px-4 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 transition-all" data-target="how-it-works">
+                        <i class="fa-solid fa-list-ol mr-2 opacity-70"></i>How It Works
+                    </button>
+                    <button class="nav-btn px-4 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 transition-all" data-target="compatibility">
+                        <i class="fa-solid fa-mobile-screen mr-2 opacity-70"></i>Compatibility
+                    </button>
+                    <button class="nav-btn px-4 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 transition-all" data-target="features">
+                        <i class="fa-solid fa-star mr-2 opacity-70"></i>Features
+                    </button>
+                    <button class="nav-btn px-4 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 transition-all" data-target="support">
+                        <i class="fa-solid fa-headset mr-2 opacity-70"></i>Support
+                    </button>
+                </nav>
+
+                <!-- Actions -->
+                <div class="hidden md:flex items-center gap-4">
+                    <button class="bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-5 py-2.5 rounded-lg text-sm font-semibold shadow-lg shadow-gray-900/20 dark:shadow-white/10 hover:scale-105 transition-transform flex items-center gap-2">
+                        <i class="fa-solid fa-user-shield"></i> My Account
+                    </button>
+                </div>
+
+                <!-- Mobile Menu Button -->
+                <button id="mobile-menu-btn" class="md:hidden p-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white" aria-label="Open menu">
+                    <i class="fa-solid fa-bars text-2xl"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Mobile Navigation Overlay -->
+    <div id="mobile-nav" class="fixed inset-0 bg-gray-900/95 backdrop-blur-xl z-[100] transform translate-x-full transition-transform duration-300 flex flex-col">
+        <div class="flex justify-between items-center p-6 border-b border-white/10">
+            <span class="font-display font-bold text-2xl text-white">Track<span class="text-primary-500">Spy</span></span>
+            <button id="close-menu-btn" class="text-gray-400 hover:text-white p-2">
+                <i class="fa-solid fa-xmark text-3xl"></i>
+            </button>
+        </div>
+        <div class="flex flex-col p-6 gap-2 flex-1">
+            <button class="nav-btn text-left text-lg font-medium text-gray-300 hover:text-white p-4 rounded-xl hover:bg-white/5 transition-colors active-nav" data-target="home"><i class="fa-solid fa-house-signal w-8"></i> Home</button>
+            <button class="nav-btn text-left text-lg font-medium text-gray-300 hover:text-white p-4 rounded-xl hover:bg-white/5 transition-colors" data-target="how-it-works"><i class="fa-solid fa-list-ol w-8"></i> How It Works</button>
+            <button class="nav-btn text-left text-lg font-medium text-gray-300 hover:text-white p-4 rounded-xl hover:bg-white/5 transition-colors" data-target="compatibility"><i class="fa-solid fa-mobile-screen w-8"></i> Compatibility</button>
+            <button class="nav-btn text-left text-lg font-medium text-gray-300 hover:text-white p-4 rounded-xl hover:bg-white/5 transition-colors" data-target="features"><i class="fa-solid fa-star w-8"></i> Features</button>
+            <button class="nav-btn text-left text-lg font-medium text-gray-300 hover:text-white p-4 rounded-xl hover:bg-white/5 transition-colors" data-target="support"><i class="fa-solid fa-headset w-8"></i> Support</button>
+        </div>
+        <div class="p-6 border-t border-white/10">
+            <button class="w-full bg-primary-500 text-white px-5 py-4 rounded-xl text-lg font-semibold shadow-lg shadow-primary-500/20 flex items-center justify-center gap-2">
+                <i class="fa-solid fa-user-shield"></i> Login / My Account
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <main id="main-content" class="flex-1 relative">
+        
+        <!-- ══════════════ HOME TAB ══════════════ -->
+        <section id="tab-home" class="tab-content active">
+            
+            <!-- Hero Section -->
+            <div class="relative pt-20 pb-32 overflow-hidden">
+                <!-- Background decorative elements -->
+                <div class="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary-500/10 via-transparent to-transparent dark:from-primary-500/20"></div>
+                <div class="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gray-200 dark:via-white/10 to-transparent"></div>
+                
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center reveal-up">
+                    <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary-50 dark:bg-primary-500/10 border border-primary-100 dark:border-primary-500/20 text-primary-600 dark:text-primary-400 text-sm font-bold tracking-wide uppercase mb-8 shadow-sm">
+                        <i class="fa-solid fa-shield-halved"></i> Trusted Device Recovery
+                    </div>
+                    
+                    <h1 class="font-display text-5xl md:text-7xl font-extrabold tracking-tight text-gray-900 dark:text-white mb-6 leading-tight">
+                        Smart Remote <br class="hidden sm:block"/>
+                        <span class="text-transparent bg-clip-text bg-gradient-to-r from-primary-500 to-cyan-500 drop-shadow-sm">Phone Tracker</span> & Spy
+                    </h1>
+                    
+                    <p class="max-w-2xl mx-auto text-lg md:text-xl text-gray-600 dark:text-gray-300 mb-10 leading-relaxed">
+                        Full visibility & monitoring over devices. GPS tracking, remote spying, data wipe, and stealth access from a single secure dashboard.
+                    </p>
+                    
+                    <div class="flex flex-col sm:flex-row justify-center items-center gap-4">
+                        <button class="nav-btn w-full sm:w-auto px-8 py-4 bg-primary-500 hover:bg-primary-600 text-white rounded-xl font-semibold text-lg shadow-xl shadow-primary-500/30 transition-all hover:-translate-y-1" data-target="how-it-works">
+                            <i class="fa-solid fa-magnifying-glass-location mr-2"></i> Start Tracking
+                        </button>
+                        <button class="nav-btn w-full sm:w-auto px-8 py-4 bg-white dark:bg-dark-800 text-gray-900 dark:text-white border border-gray-200 dark:border-dark-700 hover:border-primary-500 hover:text-primary-500 rounded-xl font-semibold text-lg shadow-sm transition-all hover:-translate-y-1" data-target="features">
+                            <i class="fa-solid fa-circle-play mr-2"></i> Explore Features
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Phone Showcase -->
+                <div class="max-w-5xl mx-auto px-4 mt-20 relative h-[400px] md:h-[500px] flex justify-center items-end reveal-up delay-200 perspective-1000">
+                    
+                    <!-- Left Phone -->
+                    <div class="hidden md:block absolute left-[15%] z-10 w-48 h-[380px] bg-dark-800 rounded-[2rem] border-8 border-gray-800 shadow-2xl overflow-hidden transform -rotate-6 translate-y-12 opacity-60 dark:opacity-80">
+                        <div class="absolute top-2 left-1/2 -translate-x-1/2 w-16 h-4 bg-gray-800 rounded-b-xl z-20"></div>
+                        <div class="h-full w-full bg-gradient-to-b from-dark-800 to-dark-900 p-4 pt-8">
+                            <div class="bg-red-500/20 text-red-400 p-2 rounded-lg text-xs font-bold mb-4 flex items-center gap-2 border border-red-500/30"><i class="fa-solid fa-lock"></i> Device Locked</div>
+                            <div class="space-y-3">
+                                <div class="h-10 bg-white/5 rounded-lg border border-white/10 flex items-center px-3 gap-3 text-white"><i class="fa-solid fa-battery-quarter text-red-400"></i><div class="flex-1 h-2 bg-white/10 rounded-full"><div class="w-1/4 h-full bg-red-400 rounded-full"></div></div></div>
+                                <div class="h-10 bg-white/5 rounded-lg border border-white/10"></div>
+                                <div class="h-10 bg-white/5 rounded-lg border border-white/10"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Center Main Phone -->
+                    <div class="relative z-20 w-[260px] md:w-[300px] h-full bg-dark-800 rounded-[2.5rem] border-[10px] border-gray-800 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.1)] overflow-hidden flex flex-col">
+                        <!-- Notch -->
+                        <div class="absolute top-0 left-1/2 -translate-x-1/2 w-24 h-6 bg-gray-800 rounded-b-2xl z-30 flex justify-center items-center gap-2">
+                            <div class="w-2 h-2 rounded-full bg-gray-900"></div>
+                            <div class="w-1 h-1 rounded-full bg-gray-600"></div>
+                        </div>
+                        
+                        <!-- Screen Content -->
+                        <div class="flex-1 bg-gradient-to-b from-gray-900 to-black text-white p-4 pt-8 flex flex-col gap-3 relative">
+                            <!-- Header -->
+                            <div class="flex justify-between items-center bg-primary-600 text-white p-2.5 rounded-xl text-xs font-bold shadow-lg shadow-primary-500/20">
+                                <span class="flex items-center gap-2"><i class="fa-solid fa-map-location-dot"></i> Live GPS</span>
+                                <span class="flex items-center gap-1 bg-white/20 px-2 py-0.5 rounded-full"><i class="fa-solid fa-circle text-[8px] text-green-300 animate-pulse"></i> Live</span>
+                            </div>
+                            
+                            <!-- Map UI -->
+                            <div class="h-32 bg-dark-700 rounded-xl relative overflow-hidden border border-white/10">
+                                <div class="absolute inset-0 opacity-20" style="background-image: radial-gradient(#fff 1px, transparent 1px); background-size: 16px 16px;"></div>
+                                <!-- Blinking Dot -->
+                                <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-primary-500 rounded-full z-10"></div>
+                                <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-12 bg-primary-500/30 rounded-full animate-ping-slow"></div>
+                            </div>
+
+                            <!-- Stats -->
+                            <div class="grid grid-cols-3 gap-2">
+                                <div class="bg-white/5 border border-white/10 rounded-lg p-2 text-center">
+                                    <div class="text-sm font-bold text-primary-400">5m</div>
+                                    <div class="text-[9px] text-gray-400">Accuracy</div>
+                                </div>
+                                <div class="bg-white/5 border border-white/10 rounded-lg p-2 text-center">
+                                    <div class="text-sm font-bold text-primary-400">30s</div>
+                                    <div class="text-[9px] text-gray-400">Refresh</div>
+                                </div>
+                                <div class="bg-white/5 border border-white/10 rounded-lg p-2 text-center">
+                                    <div class="text-sm font-bold text-primary-400">100%</div>
+                                    <div class="text-[9px] text-gray-400">Signal</div>
+                                </div>
+                            </div>
+
+                            <!-- Notification -->
+                            <div class="bg-primary-500/20 border border-primary-500/30 text-primary-400 text-[10px] font-bold p-2 rounded-lg flex items-center gap-2">
+                                <i class="fa-solid fa-bell"></i> Target is moving
+                            </div>
+                            
+                            <!-- List item -->
+                            <div class="bg-white/5 border border-white/10 rounded-lg p-2.5 flex gap-3 items-center mt-auto">
+                                <div class="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400"><i class="fa-solid fa-location-dot"></i></div>
+                                <div>
+                                    <div class="text-xs font-bold">Current Location</div>
+                                    <div class="text-[9px] text-gray-400">Updated 12s ago</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Phone -->
+                    <div class="hidden md:block absolute right-[15%] z-10 w-48 h-[380px] bg-dark-800 rounded-[2rem] border-8 border-gray-800 shadow-2xl overflow-hidden transform rotate-6 translate-y-12 opacity-60 dark:opacity-80">
+                        <div class="absolute top-2 left-1/2 -translate-x-1/2 w-16 h-4 bg-gray-800 rounded-b-xl z-20"></div>
+                        <div class="h-full w-full bg-gradient-to-b from-dark-800 to-dark-900 p-4 pt-8">
+                             <div class="bg-white/10 text-white p-2 rounded-lg text-xs font-bold mb-4 flex items-center gap-2"><i class="fa-solid fa-sliders"></i> Control Panel</div>
+                             <div class="space-y-3">
+                                <div class="h-10 bg-white/5 rounded-lg border border-white/10 flex items-center px-3 gap-3 text-white"><i class="fa-solid fa-volume-high text-orange-400"></i> <span class="text-xs">Siren Ready</span></div>
+                                <div class="h-10 bg-white/5 rounded-lg border border-white/10 flex items-center px-3 gap-3 text-white"><i class="fa-solid fa-trash text-red-400"></i> <span class="text-xs">Remote Wipe</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats Bar -->
+            <div class="border-y border-gray-200 dark:border-dark-700 bg-white/50 dark:bg-dark-800/50 backdrop-blur-sm reveal-up">
+                <div class="max-w-7xl mx-auto">
+                    <div class="grid grid-cols-2 md:grid-cols-4 divide-x divide-y md:divide-y-0 divide-gray-200 dark:divide-dark-700">
+                        <div class="p-8 text-center hover:bg-primary-50 dark:hover:bg-primary-500/5 transition-colors">
+                            <div class="font-display text-4xl font-extrabold text-primary-500 mb-1 count-up" data-target="98" data-suffix="%">0%</div>
+                            <div class="text-sm font-semibold text-gray-500 uppercase tracking-wider">Success Rate</div>
+                        </div>
+                        <div class="p-8 text-center hover:bg-primary-50 dark:hover:bg-primary-500/5 transition-colors">
+                            <div class="font-display text-4xl font-extrabold text-primary-500 mb-1 count-up" data-target="150" data-suffix="K+">0</div>
+                            <div class="text-sm font-semibold text-gray-500 uppercase tracking-wider">Active Users</div>
+                        </div>
+                        <div class="p-8 text-center hover:bg-primary-50 dark:hover:bg-primary-500/5 transition-colors">
+                            <div class="font-display text-4xl font-extrabold text-primary-500 mb-1">24/7</div>
+                            <div class="text-sm font-semibold text-gray-500 uppercase tracking-wider">Live Support</div>
+                        </div>
+                        <div class="p-8 text-center hover:bg-primary-50 dark:hover:bg-primary-500/5 transition-colors">
+                            <div class="font-display text-4xl font-extrabold text-primary-500 mb-1 count-up" data-target="190" data-suffix="+">0</div>
+                            <div class="text-sm font-semibold text-gray-500 uppercase tracking-wider">Countries</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Brands/Compatibility Strip -->
+            <div class="py-10 bg-gray-50 dark:bg-dark-900 border-b border-gray-200 dark:border-dark-700 overflow-hidden">
+                <div class="max-w-7xl mx-auto px-4 flex flex-col md:flex-row items-center gap-6">
+                    <span class="text-sm font-bold text-gray-500 uppercase tracking-widest whitespace-nowrap">Works With</span>
+                    <div class="flex gap-3 overflow-x-auto pb-2 md:pb-0 hide-scrollbar w-full mask-edges">
+                        <!-- Chips -->
+                        <div class="flex-shrink-0 flex items-center gap-2 px-4 py-2 bg-white dark:bg-dark-800 border border-gray-200 dark:border-dark-700 rounded-full text-sm font-medium hover:-translate-y-1 hover:border-primary-500 hover:shadow-lg transition-all cursor-default">
+                            <i class="fa-brands fa-facebook text-[#1877F2]"></i> Facebook
+                        </div>
+                        <div class="flex-shrink-0 flex items-center gap-2 px-4 py-2 bg-white dark:bg-dark-800 border border-gray-200 dark:border-dark-700 rounded-full text-sm font-medium hover:-translate-y-1 hover:border-primary-500 hover:shadow-lg transition-all cursor-default">
+                            <i class="fa-brands fa-whatsapp text-[#25D366]"></i> WhatsApp
+                        </div>
+                        <div class="flex-shrink-0 flex items-center gap-2 px-4 py-2 bg-white dark:bg-dark-800 border border-gray-200 dark:border-dark-700 rounded-full text-sm font-medium hover:-translate-y-1 hover:border-primary-500 hover:shadow-lg transition-all cursor-default">
+                            <i class="fa-brands fa-instagram text-[#E1306C]"></i> Instagram
+                        </div>
+                        <div class="flex-shrink-0 flex items-center gap-2 px-4 py-2 bg-white dark:bg-dark-800 border border-gray-200 dark:border-dark-700 rounded-full text-sm font-medium hover:-translate-y-1 hover:border-primary-500 hover:shadow-lg transition-all cursor-default">
+                            <i class="fa-brands fa-telegram text-[#26A5E4]"></i> Telegram
+                        </div>
+                        <div class="flex-shrink-0 flex items-center gap-2 px-4 py-2 bg-white dark:bg-dark-800 border border-gray-200 dark:border-dark-700 rounded-full text-sm font-medium hover:-translate-y-1 hover:border-primary-500 hover:shadow-lg transition-all cursor-default">
+                            <i class="fa-brands fa-apple text-gray-900 dark:text-white"></i> iOS
+                        </div>
+                        <div class="flex-shrink-0 flex items-center gap-2 px-4 py-2 bg-white dark:bg-dark-800 border border-gray-200 dark:border-dark-700 rounded-full text-sm font-medium hover:-translate-y-1 hover:border-primary-500 hover:shadow-lg transition-all cursor-default">
+                            <i class="fa-brands fa-android text-[#3DDC84]"></i> Android
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Capabilities Grid -->
+            <div class="py-24 bg-white dark:bg-dark-900">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div class="flex flex-col md:flex-row justify-between items-end gap-6 mb-12 reveal-up">
+                        <div>
+                            <h2 class="font-display text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">Monitoring Capabilities</h2>
+                            <p class="text-gray-600 dark:text-gray-400 max-w-xl">Comprehensive tracking suite giving you access to all data points seamlessly and securely.</p>
+                        </div>
+                        <span class="px-4 py-1.5 rounded-full border border-primary-500/30 text-primary-600 dark:text-primary-400 text-xs font-bold uppercase tracking-wider bg-primary-50 dark:bg-primary-500/10">All Features</span>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                        <!-- Cards generated cleanly -->
+                        <div class="reveal-up glass-panel rounded-2xl p-6 hover:-translate-y-2 hover:shadow-2xl hover:shadow-primary-500/10 transition-all duration-300 group bg-white dark:bg-dark-800">
+                            <div class="w-12 h-12 rounded-xl bg-green-100 dark:bg-green-500/10 flex items-center justify-center text-green-600 dark:text-green-400 text-xl mb-4 group-hover:scale-110 transition-transform"><i class="fa-solid fa-map-location-dot"></i></div>
+                            <h3 class="font-bold text-gray-900 dark:text-white mb-2 flex items-center justify-between">GPS Live Tracking <span class="text-[10px] bg-primary-100 dark:bg-primary-500/20 text-primary-600 dark:text-primary-400 px-2 py-1 rounded flex items-center gap-1"><i class="fa-solid fa-circle text-[6px] animate-pulse"></i> Live</span></h3>
+                            <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">Pinpoint real-time location on an interactive map with 30-day history.</p>
+                        </div>
+                        <div class="reveal-up glass-panel rounded-2xl p-6 hover:-translate-y-2 hover:shadow-2xl hover:shadow-primary-500/10 transition-all duration-300 group bg-white dark:bg-dark-800" style="transition-delay: 50ms;">
+                            <div class="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-500/10 flex items-center justify-center text-blue-600 dark:text-blue-400 text-xl mb-4 group-hover:scale-110 transition-transform"><i class="fa-solid fa-phone-volume"></i></div>
+                            <h3 class="font-bold text-gray-900 dark:text-white mb-2">Call Log</h3>
+                            <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">Record & View all incoming, outgoing, and missed calls secretly.</p>
+                        </div>
+                        <div class="reveal-up glass-panel rounded-2xl p-6 hover:-translate-y-2 hover:shadow-2xl hover:shadow-primary-500/10 transition-all duration-300 group bg-white dark:bg-dark-800" style="transition-delay: 100ms;">
+                            <div class="w-12 h-12 rounded-xl bg-purple-100 dark:bg-purple-500/10 flex items-center justify-center text-purple-600 dark:text-purple-400 text-xl mb-4 group-hover:scale-110 transition-transform"><i class="fa-brands fa-whatsapp"></i></div>
+                            <h3 class="font-bold text-gray-900 dark:text-white mb-2">WhatsApp Monitor</h3>
+                            <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">View all text, voice messages, and shared images in real-time.</p>
+                        </div>
+                        <div class="reveal-up glass-panel rounded-2xl p-6 hover:-translate-y-2 hover:shadow-2xl hover:shadow-primary-500/10 transition-all duration-300 group bg-white dark:bg-dark-800" style="transition-delay: 150ms;">
+                            <div class="w-12 h-12 rounded-xl bg-red-100 dark:bg-red-500/10 flex items-center justify-center text-red-600 dark:text-red-400 text-xl mb-4 group-hover:scale-110 transition-transform"><i class="fa-solid fa-lock"></i></div>
+                            <h3 class="font-bold text-gray-900 dark:text-white mb-2">Remote Lock</h3>
+                            <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">Instantly lock the device remotely to prevent unauthorized access.</p>
+                        </div>
+                        <div class="reveal-up glass-panel rounded-2xl p-6 hover:-translate-y-2 hover:shadow-2xl hover:shadow-primary-500/10 transition-all duration-300 group bg-white dark:bg-dark-800" style="transition-delay: 200ms;">
+                            <div class="w-12 h-12 rounded-xl bg-sky-100 dark:bg-sky-500/10 flex items-center justify-center text-sky-600 dark:text-sky-400 text-xl mb-4 group-hover:scale-110 transition-transform"><i class="fa-solid fa-comment-sms"></i></div>
+                            <h3 class="font-bold text-gray-900 dark:text-white mb-2">Text Messages</h3>
+                            <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">Read SMS/MMS messages sent and received on the device, even if deleted.</p>
+                        </div>
+                        <div class="reveal-up glass-panel rounded-2xl p-6 hover:-translate-y-2 hover:shadow-2xl hover:shadow-primary-500/10 transition-all duration-300 group bg-white dark:bg-dark-800" style="transition-delay: 250ms;">
+                            <div class="w-12 h-12 rounded-xl bg-orange-100 dark:bg-orange-500/10 flex items-center justify-center text-orange-600 dark:text-orange-400 text-xl mb-4 group-hover:scale-110 transition-transform"><i class="fa-brands fa-instagram"></i></div>
+                            <h3 class="font-bold text-gray-900 dark:text-white mb-2">Social Logs</h3>
+                            <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">Track Instagram DMs, Facebook Messenger, and account activity.</p>
+                        </div>
+                        <div class="reveal-up glass-panel rounded-2xl p-6 hover:-translate-y-2 hover:shadow-2xl hover:shadow-primary-500/10 transition-all duration-300 group bg-white dark:bg-dark-800" style="transition-delay: 300ms;">
+                            <div class="w-12 h-12 rounded-xl bg-teal-100 dark:bg-teal-500/10 flex items-center justify-center text-teal-600 dark:text-teal-400 text-xl mb-4 group-hover:scale-110 transition-transform"><i class="fa-solid fa-camera"></i></div>
+                            <h3 class="font-bold text-gray-900 dark:text-white mb-2">Stealth Camera</h3>
+                            <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">Silently activate the front or rear camera to capture surroundings.</p>
+                        </div>
+                        <div class="reveal-up glass-panel rounded-2xl p-6 hover:-translate-y-2 hover:shadow-2xl hover:shadow-primary-500/10 transition-all duration-300 group bg-white dark:bg-dark-800" style="transition-delay: 350ms;">
+                            <div class="w-12 h-12 rounded-xl bg-indigo-100 dark:bg-indigo-500/10 flex items-center justify-center text-indigo-600 dark:text-indigo-400 text-xl mb-4 group-hover:scale-110 transition-transform"><i class="fa-solid fa-globe"></i></div>
+                            <h3 class="font-bold text-gray-900 dark:text-white mb-2">Browser History</h3>
+                            <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">View every website visited using any browser on the device.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Testimonials -->
+            <div class="py-24 bg-gray-50 dark:bg-dark-800 border-t border-gray-200 dark:border-dark-700">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div class="text-center max-w-2xl mx-auto mb-16 reveal-up">
+                        <h2 class="font-display text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">Trusted Worldwide</h2>
+                        <p class="text-gray-600 dark:text-gray-400">See what our community has to say about the TrackSpy platform.</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                        <div class="bg-white dark:bg-dark-900 p-8 rounded-2xl border border-gray-100 dark:border-dark-700 shadow-xl shadow-gray-200/20 dark:shadow-none reveal-up">
+                            <div class="flex text-amber-400 mb-4 text-sm"><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i></div>
+                            <p class="text-gray-600 dark:text-gray-300 mb-6 italic leading-relaxed">"My son sends and receives over 8,000 text messages a month! TrackSpy sent them all to my dashboard which is really astonishing. Very reliable."</p>
+                            <div>
+                                <div class="font-bold text-gray-900 dark:text-white">— Heather P.</div>
+                                <div class="text-xs text-gray-500 mt-1">Jericho, NY</div>
+                            </div>
+                        </div>
+                        <div class="bg-white dark:bg-dark-900 p-8 rounded-2xl border border-gray-100 dark:border-dark-700 shadow-xl shadow-gray-200/20 dark:shadow-none reveal-up" style="transition-delay: 100ms;">
+                            <div class="flex text-amber-400 mb-4 text-sm"><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i></div>
+                            <p class="text-gray-600 dark:text-gray-300 mb-6 italic leading-relaxed">"I suspected suspicious late-night activity on her phone, so I used TrackSpy to check it — worked 100%. Now I have full access to location history."</p>
+                            <div>
+                                <div class="font-bold text-gray-900 dark:text-white">— Charlotte T.</div>
+                                <div class="text-xs text-gray-500 mt-1">London, UK</div>
+                            </div>
+                        </div>
+                        <div class="bg-white dark:bg-dark-900 p-8 rounded-2xl border border-gray-100 dark:border-dark-700 shadow-xl shadow-gray-200/20 dark:shadow-none reveal-up" style="transition-delay: 200ms;">
+                            <div class="flex text-amber-400 mb-4 text-sm"><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i></div>
+                            <p class="text-gray-600 dark:text-gray-300 mb-6 italic leading-relaxed">"I was able to track my device location exactly after it went missing. Found out the truth using TrackSafe's app. Amazing product — highly recommend."</p>
+                            <div>
+                                <div class="font-bold text-gray-900 dark:text-white">— Chris H.</div>
+                                <div class="text-xs text-gray-500 mt-1">Stockholm, Sweden</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ══════════════ HOW IT WORKS TAB ══════════════ -->
+        <section id="tab-how-it-works" class="tab-content">
+            <div class="py-20 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-16 reveal-up">
+                    <span class="text-primary-500 font-bold uppercase tracking-wider text-sm mb-2 block">Step by Step</span>
+                    <h2 class="font-display text-4xl font-bold text-gray-900 dark:text-white mb-4">How TrackSpy Works</h2>
+                    <p class="text-lg text-gray-600 dark:text-gray-400">TrackSpy silently gathers texts, calls, GPS, and more without requiring physical access. Data is remotely accessed via your secure web dashboard.</p>
+                </div>
+
+                <div class="relative border-l-2 border-gray-200 dark:border-dark-700 ml-6 md:ml-12 space-y-16 pb-12">
+                    
+                    <div class="relative pl-10 md:pl-16 reveal-up">
+                        <div class="absolute -left-6 md:-left-8 top-0 w-12 md:w-16 h-12 md:h-16 rounded-full bg-gradient-to-br from-primary-400 to-blue-500 text-white flex items-center justify-center font-display font-bold text-xl shadow-lg shadow-primary-500/30 border-4 border-white dark:border-dark-900">1</div>
+                        <div class="bg-white dark:bg-dark-800 p-8 rounded-2xl shadow-xl shadow-gray-200/20 dark:shadow-none border border-gray-100 dark:border-dark-700">
+                            <div class="w-12 h-12 bg-primary-50 dark:bg-primary-500/10 text-primary-500 rounded-xl flex items-center justify-center text-2xl mb-4"><i class="fa-solid fa-cloud-arrow-down"></i></div>
+                            <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-3">Remote Installation Setup</h3>
+                            <p class="text-gray-600 dark:text-gray-400 leading-relaxed">We initialize the spy software protocol from our secure servers. You do not need physical access to the target phone. We handle the OTA (Over-The-Air) configuration link generation.</p>
+                        </div>
+                    </div>
+
+                    <div class="relative pl-10 md:pl-16 reveal-up">
+                        <div class="absolute -left-6 md:-left-8 top-0 w-12 md:w-16 h-12 md:h-16 rounded-full bg-gradient-to-br from-primary-400 to-blue-500 text-white flex items-center justify-center font-display font-bold text-xl shadow-lg shadow-primary-500/30 border-4 border-white dark:border-dark-900">2</div>
+                        <div class="bg-white dark:bg-dark-800 p-8 rounded-2xl shadow-xl shadow-gray-200/20 dark:shadow-none border border-gray-100 dark:border-dark-700">
+                            <div class="w-12 h-12 bg-primary-50 dark:bg-primary-500/10 text-primary-500 rounded-xl flex items-center justify-center text-2xl mb-4"><i class="fa-solid fa-key"></i></div>
+                            <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-3">Activation & Sync</h3>
+                            <p class="text-gray-600 dark:text-gray-400 leading-relaxed">Activate the tracking agent using your unique license key. Once paired, the software runs 100% invisibly in the background, consuming minimal battery while bypassing native security prompts.</p>
+                        </div>
+                    </div>
+
+                    <div class="relative pl-10 md:pl-16 reveal-up">
+                        <div class="absolute -left-6 md:-left-8 top-0 w-12 md:w-16 h-12 md:h-16 rounded-full bg-gradient-to-br from-primary-400 to-blue-500 text-white flex items-center justify-center font-display font-bold text-xl shadow-lg shadow-primary-500/30 border-4 border-white dark:border-dark-900">3</div>
+                        <div class="bg-white dark:bg-dark-800 p-8 rounded-2xl shadow-xl shadow-gray-200/20 dark:shadow-none border border-gray-100 dark:border-dark-700">
+                            <div class="w-12 h-12 bg-primary-50 dark:bg-primary-500/10 text-primary-500 rounded-xl flex items-center justify-center text-2xl mb-4"><i class="fa-solid fa-desktop"></i></div>
+                            <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-3">Live Monitoring Dashboard</h3>
+                            <p class="text-gray-600 dark:text-gray-400 leading-relaxed">Log into your secure control panel from any browser. View real-time feeds of GPS locations, SMS logs, WhatsApp chats, browser history, and remote control options.</p>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- ══════════════ COMPATIBILITY TAB ══════════════ -->
+        <section id="tab-compatibility" class="tab-content">
+            <div class="py-20 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-16 reveal-up">
+                    <span class="text-primary-500 font-bold uppercase tracking-wider text-sm mb-2 block">Platform Support</span>
+                    <h2 class="font-display text-4xl font-bold text-gray-900 dark:text-white mb-4">Device Compatibility</h2>
+                    <p class="text-lg text-gray-600 dark:text-gray-400">TrackSpy works seamlessly across modern mobile operating systems. No rooting or jailbreaking required for core features.</p>
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-8">
+                    <!-- iOS Card -->
+                    <div class="bg-white dark:bg-dark-800 rounded-3xl p-8 border border-gray-200 dark:border-dark-700 shadow-2xl shadow-gray-200/50 dark:shadow-none relative overflow-hidden group hover:-translate-y-2 transition-transform duration-300 reveal-up">
+                        <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-gray-200 to-gray-400 dark:from-gray-600 dark:to-gray-300"></div>
+                        <i class="fa-brands fa-apple text-6xl text-gray-900 dark:text-white mb-6 block"></i>
+                        <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">Apple iOS Devices</h3>
+                        <ul class="space-y-4 mb-8 text-gray-600 dark:text-gray-400">
+                            <li class="flex items-start gap-3"><i class="fa-solid fa-circle-check text-primary-500 mt-1"></i> <span>Supports iPhone, iPad, and iPod Touch running <strong>iOS 14+</strong></span></li>
+                            <li class="flex items-start gap-3"><i class="fa-solid fa-circle-check text-primary-500 mt-1"></i> <span>Works seamlessly with <strong>iCloud synchronization</strong></span></li>
+                            <li class="flex items-start gap-3"><i class="fa-solid fa-circle-check text-primary-500 mt-1"></i> <span><strong>No jailbreak</strong> required to maintain device warranty</span></li>
+                            <li class="flex items-start gap-3"><i class="fa-solid fa-circle-check text-primary-500 mt-1"></i> <span>Activation Lock bypass assistance provided</span></li>
+                        </ul>
+                    </div>
+
+                    <!-- Android Card -->
+                    <div class="bg-white dark:bg-dark-800 rounded-3xl p-8 border border-gray-200 dark:border-dark-700 shadow-2xl shadow-gray-200/50 dark:shadow-none relative overflow-hidden group hover:-translate-y-2 transition-transform duration-300 reveal-up" style="transition-delay: 100ms;">
+                        <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-green-400 to-emerald-600"></div>
+                        <i class="fa-brands fa-android text-6xl text-[#3DDC84] mb-6 block"></i>
+                        <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">Android Devices</h3>
+                        <ul class="space-y-4 mb-8 text-gray-600 dark:text-gray-400">
+                            <li class="flex items-start gap-3"><i class="fa-solid fa-circle-check text-primary-500 mt-1"></i> <span>Supports Samsung, Pixel, OnePlus & <strong>all major brands</strong></span></li>
+                            <li class="flex items-start gap-3"><i class="fa-solid fa-circle-check text-primary-500 mt-1"></i> <span>Compatible with <strong>Android 9.0+</strong> up to latest</span></li>
+                            <li class="flex items-start gap-3"><i class="fa-solid fa-circle-check text-primary-500 mt-1"></i> <span><strong>No root access</strong> needed for installation</span></li>
+                            <li class="flex items-start gap-3"><i class="fa-solid fa-circle-check text-primary-500 mt-1"></i> <span>Bypasses Google Play Protect silently</span></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ══════════════ FEATURES TAB (Detailed) ══════════════ -->
+        <section id="tab-features" class="tab-content">
+            <div class="py-20 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-20 reveal-up">
+                    <span class="text-primary-500 font-bold uppercase tracking-wider text-sm mb-2 block">Deep Dive</span>
+                    <h2 class="font-display text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-6">Powerful Stealth Engine</h2>
+                    <p class="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">TrackSpy provides the most complete remote monitoring toolkit available on the market today. Discover what's possible.</p>
+                </div>
+
+                <!-- Feature 1 -->
+                <div class="flex flex-col lg:flex-row items-center gap-16 mb-32 reveal-up">
+                    <div class="flex-1">
+                        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary-50 dark:bg-primary-500/10 text-primary-600 dark:text-primary-400 text-xs font-bold mb-6"><i class="fa-solid fa-comment-sms"></i> Communication Logs</div>
+                        <h3 class="font-display text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-6">Intercept Every Message</h3>
+                        <p class="text-lg text-gray-600 dark:text-gray-400 mb-8">Every text message sent and received is logged instantly. Read conversations in real-time, even if they are deleted from the target device immediately after viewing.</p>
+                        <ul class="space-y-3 text-gray-600 dark:text-gray-300">
+                            <li class="flex items-center gap-3"><i class="fa-solid fa-check text-primary-500"></i> Read full content of SMS and iMessages</li>
+                            <li class="flex items-center gap-3"><i class="fa-solid fa-check text-primary-500"></i> Access deleted messages safely</li>
+                            <li class="flex items-center gap-3"><i class="fa-solid fa-check text-primary-500"></i> View exact timestamps and contact info</li>
+                        </ul>
+                    </div>
+                    <div class="flex-1 w-full flex justify-center lg:justify-end">
+                        <div class="w-full max-w-sm bg-white dark:bg-dark-800 rounded-2xl border border-gray-200 dark:border-dark-700 shadow-2xl p-6">
+                            <div class="flex items-center gap-4 border-b border-gray-100 dark:border-dark-700 pb-4 mb-4">
+                                <div class="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-500/20 flex items-center justify-center text-blue-500"><i class="fa-solid fa-user"></i></div>
+                                <div>
+                                    <h4 class="font-bold text-gray-900 dark:text-white">+1 (555) 019-2834</h4>
+                                    <span class="text-xs text-gray-500">Last synced: 2 mins ago</span>
+                                </div>
+                            </div>
+                            <div class="space-y-4">
+                                <div class="bg-gray-50 dark:bg-dark-900 p-3 rounded-lg rounded-tl-none border border-gray-100 dark:border-dark-700 max-w-[85%]">
+                                    <p class="text-sm text-gray-800 dark:text-gray-200">Are we still meeting at 8?</p>
+                                    <span class="text-[10px] text-gray-400 mt-1 block">19:45</span>
+                                </div>
+                                <div class="bg-primary-50 dark:bg-primary-500/10 p-3 rounded-lg rounded-tr-none border border-primary-100 dark:border-primary-500/20 max-w-[85%] ml-auto text-right">
+                                    <p class="text-sm text-gray-800 dark:text-gray-200">Yes, don't tell anyone else.</p>
+                                    <span class="text-[10px] text-primary-400 mt-1 block">19:47</span>
+                                </div>
+                                <div class="flex items-center gap-2 text-xs text-red-500 mt-2 bg-red-50 dark:bg-red-500/10 p-2 rounded justify-center">
+                                    <i class="fa-solid fa-trash-can"></i> Message deleted by user
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Feature 2 (Reversed) -->
+                <div class="flex flex-col lg:flex-row-reverse items-center gap-16 reveal-up">
+                    <div class="flex-1">
+                        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary-50 dark:bg-primary-500/10 text-primary-600 dark:text-primary-400 text-xs font-bold mb-6"><i class="fa-solid fa-share-nodes"></i> Social Network Tracking</div>
+                        <h3 class="font-display text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-6">Monitor Social Media & Chats</h3>
+                        <p class="text-lg text-gray-600 dark:text-gray-400 mb-8">Bypass end-to-end encryption by capturing messages directly from the device screen. Monitor WhatsApp, Instagram, Telegram, and Facebook seamlessly.</p>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="bg-gray-50 dark:bg-dark-800 p-4 rounded-xl border border-gray-100 dark:border-dark-700 flex items-center gap-3">
+                                <i class="fa-brands fa-whatsapp text-2xl text-[#25D366]"></i>
+                                <span class="font-semibold text-gray-900 dark:text-white">WhatsApp</span>
+                            </div>
+                            <div class="bg-gray-50 dark:bg-dark-800 p-4 rounded-xl border border-gray-100 dark:border-dark-700 flex items-center gap-3">
+                                <i class="fa-brands fa-instagram text-2xl text-[#E1306C]"></i>
+                                <span class="font-semibold text-gray-900 dark:text-white">Instagram</span>
+                            </div>
+                            <div class="bg-gray-50 dark:bg-dark-800 p-4 rounded-xl border border-gray-100 dark:border-dark-700 flex items-center gap-3">
+                                <i class="fa-brands fa-telegram text-2xl text-[#26A5E4]"></i>
+                                <span class="font-semibold text-gray-900 dark:text-white">Telegram</span>
+                            </div>
+                            <div class="bg-gray-50 dark:bg-dark-800 p-4 rounded-xl border border-gray-100 dark:border-dark-700 flex items-center gap-3">
+                                <i class="fa-brands fa-facebook text-2xl text-[#1877F2]"></i>
+                                <span class="font-semibold text-gray-900 dark:text-white">Facebook</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex-1 w-full flex justify-center lg:justify-start">
+                        <!-- Mockup showing social feed -->
+                        <div class="w-full max-w-sm bg-white dark:bg-dark-800 rounded-2xl border border-gray-200 dark:border-dark-700 shadow-2xl p-2 relative overflow-hidden">
+                            <div class="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-purple-500 to-pink-500"></div>
+                            <div class="p-4 border-b border-gray-100 dark:border-dark-700 flex justify-between items-center">
+                                <span class="font-bold text-gray-900 dark:text-white"><i class="fa-brands fa-instagram text-[#E1306C] mr-2"></i> Direct Messages</span>
+                                <span class="bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full">LIVE</span>
+                            </div>
+                            <div class="p-4 space-y-4">
+                                <div class="flex gap-3">
+                                    <div class="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex-shrink-0"></div>
+                                    <div>
+                                        <div class="text-sm font-bold text-gray-900 dark:text-white">alex_smith99</div>
+                                        <div class="text-xs text-gray-500">Sent a photo · 2m</div>
+                                    </div>
+                                </div>
+                                <div class="ml-13 bg-gray-100 dark:bg-dark-900 h-32 rounded-lg border border-gray-200 dark:border-dark-700 flex items-center justify-center">
+                                    <i class="fa-solid fa-image text-gray-400 text-3xl"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ══════════════ SUPPORT TAB ══════════════ -->
+        <section id="tab-support" class="tab-content">
+            <div class="py-20 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-16 reveal-up">
+                    <span class="text-primary-500 font-bold uppercase tracking-wider text-sm mb-2 block">24/7 Assistance</span>
+                    <h2 class="font-display text-4xl font-bold text-gray-900 dark:text-white mb-4">We're Here to Help</h2>
+                    <p class="text-lg text-gray-600 dark:text-gray-400">Reach our dedicated technical support team instantly through your preferred channel.</p>
+                </div>
+
+                <div class="grid md:grid-cols-3 gap-6 mb-20 reveal-up">
+                    <a href="https://wa.me/+12024988571" class="bg-white dark:bg-dark-800 p-6 rounded-2xl border border-gray-200 dark:border-dark-700 text-center hover:border-[#25D366] hover:shadow-lg transition-all group block">
+                        <div class="w-16 h-16 mx-auto rounded-full bg-[#25D366]/10 text-[#25D366] flex items-center justify-center text-3xl mb-4 group-hover:scale-110 transition-transform"><i class="fa-brands fa-whatsapp"></i></div>
+                        <h3 class="font-bold text-gray-900 dark:text-white mb-2">WhatsApp</h3>
+                        <p class="text-sm text-gray-500 mb-4">Instant chat response</p>
+                        <span class="text-[#25D366] font-medium text-sm">Message Us &rarr;</span>
+                    </a>
+                    <a href="https://t.me/tracksafe" class="bg-white dark:bg-dark-800 p-6 rounded-2xl border border-gray-200 dark:border-dark-700 text-center hover:border-[#0088cc] hover:shadow-lg transition-all group block">
+                        <div class="w-16 h-16 mx-auto rounded-full bg-[#0088cc]/10 text-[#0088cc] flex items-center justify-center text-3xl mb-4 group-hover:scale-110 transition-transform"><i class="fa-brands fa-telegram"></i></div>
+                        <h3 class="font-bold text-gray-900 dark:text-white mb-2">Telegram</h3>
+                        <p class="text-sm text-gray-500 mb-4">Secure encrypted chat</p>
+                        <span class="text-[#0088cc] font-medium text-sm">Join Channel &rarr;</span>
+                    </a>
+                    <a href="mailto:royaltecrico@gmail.com" class="bg-white dark:bg-dark-800 p-6 rounded-2xl border border-gray-200 dark:border-dark-700 text-center hover:border-red-500 hover:shadow-lg transition-all group block">
+                        <div class="w-16 h-16 mx-auto rounded-full bg-red-500/10 text-red-500 flex items-center justify-center text-3xl mb-4 group-hover:scale-110 transition-transform"><i class="fa-solid fa-envelope"></i></div>
+                        <h3 class="font-bold text-gray-900 dark:text-white mb-2">Email</h3>
+                        <p class="text-sm text-gray-500 mb-4">Detailed technical support</p>
+                        <span class="text-red-500 font-medium text-sm">Send Email &rarr;</span>
+                    </a>
+                </div>
+
+                <h3 class="font-display text-2xl font-bold text-gray-900 dark:text-white mb-8 reveal-up">Frequently Asked Questions</h3>
+                <div class="space-y-4 reveal-up">
+                    <!-- FAQ Items -->
+                    <div class="border border-gray-200 dark:border-dark-700 rounded-xl bg-white dark:bg-dark-800 overflow-hidden faq-item">
+                        <button class="w-full px-6 py-4 text-left flex justify-between items-center focus:outline-none focus:bg-gray-50 dark:focus:bg-dark-700">
+                            <span class="font-semibold text-gray-900 dark:text-white">Is TrackSpy legal to use?</span>
+                            <i class="fa-solid fa-chevron-down text-gray-400 transition-transform"></i>
+                        </button>
+                        <div class="px-6 py-0 max-h-0 overflow-hidden transition-all duration-300 text-gray-600 dark:text-gray-400 text-sm">
+                            <div class="pb-4">TrackSpy is 100% legal when used on devices you own or have proper authorization to monitor (such as your minor children). Using this service to track a device you don't own without consent is illegal and a violation of our Terms of Service.</div>
+                        </div>
+                    </div>
+                    <div class="border border-gray-200 dark:border-dark-700 rounded-xl bg-white dark:bg-dark-800 overflow-hidden faq-item">
+                        <button class="w-full px-6 py-4 text-left flex justify-between items-center focus:outline-none focus:bg-gray-50 dark:focus:bg-dark-700">
+                            <span class="font-semibold text-gray-900 dark:text-white">Do I need to root or jailbreak the target phone?</span>
+                            <i class="fa-solid fa-chevron-down text-gray-400 transition-transform"></i>
+                        </button>
+                        <div class="px-6 py-0 max-h-0 overflow-hidden transition-all duration-300 text-gray-600 dark:text-gray-400 text-sm">
+                            <div class="pb-4">No. The core features of TrackSpy, including SMS tracking, GPS location, call logs, and basic social media monitoring, do not require root access on Android or a jailbreak on iOS devices.</div>
+                        </div>
+                    </div>
+                    <div class="border border-gray-200 dark:border-dark-700 rounded-xl bg-white dark:bg-dark-800 overflow-hidden faq-item">
+                        <button class="w-full px-6 py-4 text-left flex justify-between items-center focus:outline-none focus:bg-gray-50 dark:focus:bg-dark-700">
+                            <span class="font-semibold text-gray-900 dark:text-white">Will the user know the software is installed?</span>
+                            <i class="fa-solid fa-chevron-down text-gray-400 transition-transform"></i>
+                        </button>
+                        <div class="px-6 py-0 max-h-0 overflow-hidden transition-all duration-300 text-gray-600 dark:text-gray-400 text-sm">
+                            <div class="pb-4">No. Once installed and configured, the TrackSpy agent hides its icon and runs silently in the background. It does not generate notifications or drain the battery noticeably.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-50 dark:bg-[#0a0f0c] border-t border-gray-200 dark:border-dark-700 pt-16 pb-8 transition-colors duration-300">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-12">
+                <div class="lg:col-span-2">
+                    <a href="#" class="flex items-center gap-2 mb-6">
+                        <i class="fa-solid fa-location-crosshairs text-primary-500 text-2xl"></i>
+                        <span class="font-display font-bold text-2xl tracking-tight text-gray-900 dark:text-white">Track<span class="text-primary-500">Spy</span></span>
+                    </a>
+                    <p class="text-gray-500 dark:text-gray-400 text-sm leading-relaxed max-w-md">
+                        The ultimate mobile tracking and device recovery solution. Monitor calls, GPS, texts, and social media from anywhere in the world securely. Empowering parents and device owners with complete visibility.
+                    </p>
+                </div>
+                <div>
+                    <h4 class="font-bold text-gray-900 dark:text-white uppercase tracking-wider text-sm mb-6">Quick Links</h4>
+                    <ul class="space-y-3">
+                        <li><button class="nav-btn text-gray-500 hover:text-primary-500 dark:text-gray-400 dark:hover:text-primary-400 text-sm transition-colors" data-target="home">Home</button></li>
+                        <li><button class="nav-btn text-gray-500 hover:text-primary-500 dark:text-gray-400 dark:hover:text-primary-400 text-sm transition-colors" data-target="how-it-works">How It Works</button></li>
+                        <li><button class="nav-btn text-gray-500 hover:text-primary-500 dark:text-gray-400 dark:hover:text-primary-400 text-sm transition-colors" data-target="features">Features</button></li>
+                        <li><button class="nav-btn text-gray-500 hover:text-primary-500 dark:text-gray-400 dark:hover:text-primary-400 text-sm transition-colors" data-target="support">Support</button></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-bold text-gray-900 dark:text-white uppercase tracking-wider text-sm mb-6">Legal</h4>
+                    <ul class="space-y-3">
+                        <li><a href="#" class="text-gray-500 hover:text-primary-500 dark:text-gray-400 dark:hover:text-primary-400 text-sm transition-colors">Privacy Policy</a></li>
+                        <li><a href="#" class="text-gray-500 hover:text-primary-500 dark:text-gray-400 dark:hover:text-primary-400 text-sm transition-colors">Terms of Service</a></li>
+                        <li><a href="#" class="text-gray-500 hover:text-primary-500 dark:text-gray-400 dark:hover:text-primary-400 text-sm transition-colors">Cookie Policy</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Disclaimer -->
+            <div class="bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-200 dark:border-yellow-700/30 rounded-xl p-6 mb-8">
+                <h4 class="text-yellow-800 dark:text-yellow-500 font-bold text-sm mb-2 flex items-center gap-2"><i class="fa-solid fa-triangle-exclamation"></i> Important Legal Disclaimer</h4>
+                <p class="text-xs text-yellow-700 dark:text-yellow-600/80 leading-relaxed">
+                    TrackSpy is designed for ethical use only, such as parental control or recovering your own lost devices. You must have the explicit legal right to monitor the device you install it on. It is a violation of local and federal laws to install surveillance software onto a mobile phone you do not have proper authorization for. We reserve the right to terminate accounts found violating our Terms of Service.
+                </p>
+            </div>
+
+            <div class="border-t border-gray-200 dark:border-dark-700 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
+                <p class="text-gray-400 text-sm">&copy; 2026 TrackSpy Platform. All Rights Reserved.</p>
+                <div class="flex gap-4">
+                    <a href="#" class="w-8 h-8 rounded-full bg-gray-200 dark:bg-dark-800 text-gray-500 hover:bg-primary-500 hover:text-white flex items-center justify-center transition-colors"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="#" class="w-8 h-8 rounded-full bg-gray-200 dark:bg-dark-800 text-gray-500 hover:bg-primary-500 hover:text-white flex items-center justify-center transition-colors"><i class="fa-brands fa-facebook-f"></i></a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Floating Action Buttons -->
+    <div class="fixed bottom-6 right-6 z-50 flex flex-col gap-3">
+        <a href="https://wa.me/+12024988571" class="w-12 h-12 bg-[#25D366] text-white rounded-full flex items-center justify-center text-2xl shadow-lg shadow-[#25D366]/40 hover:scale-110 transition-transform group relative" aria-label="WhatsApp Support">
+            <i class="fa-brands fa-whatsapp"></i>
+            <span class="absolute right-14 bg-gray-900 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">WhatsApp Us</span>
+        </a>
+        <a href="https://t.me/tracksafe" class="w-12 h-12 bg-[#0088cc] text-white rounded-full flex items-center justify-center text-2xl shadow-lg shadow-[#0088cc]/40 hover:scale-110 transition-transform group relative" aria-label="Telegram Support">
+            <i class="fa-brands fa-telegram"></i>
+            <span class="absolute right-14 bg-gray-900 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Join Telegram</span>
+        </a>
+    </div>
+
+    <!-- JavaScript Logic -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            
+            // ── Dark/Light Mode Logic ──
+            const html = document.documentElement;
+            const themeToggle = document.getElementById('theme-toggle');
+            const themeIcon = document.getElementById('theme-icon');
+            const themeText = document.getElementById('theme-text');
+
+            function setTheme(isDark) {
+                if (isDark) {
+                    html.classList.add('dark');
+                    themeIcon.className = 'fa-solid fa-sun';
+                    themeText.textContent = 'Light';
+                    localStorage.setItem('theme', 'dark');
+                } else {
+                    html.classList.remove('dark');
+                    themeIcon.className = 'fa-solid fa-moon';
+                    themeText.textContent = 'Dark';
+                    localStorage.setItem('theme', 'light');
+                }
+            }
+
+            // Init theme
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme === 'light') {
+                setTheme(false);
+            } else {
+                setTheme(true); // Default to dark for premium tech vibe
+            }
+
+            themeToggle.addEventListener('click', () => {
+                setTheme(!html.classList.contains('dark'));
+            });
+
+            // ── Mobile Menu Logic ──
+            const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+            const closeMenuBtn = document.getElementById('close-menu-btn');
+            const mobileNav = document.getElementById('mobile-nav');
+
+            mobileMenuBtn.addEventListener('click', () => {
+                mobileNav.classList.remove('translate-x-full');
+            });
+
+            closeMenuBtn.addEventListener('click', () => {
+                mobileNav.classList.add('translate-x-full');
+            });
+
+            // ── Tab Switching Logic ──
+            const navTriggers = document.querySelectorAll('.nav-trigger, .nav-btn');
+            const tabContents = document.querySelectorAll('.tab-content');
+
+            function switchTab(targetId) {
+                // Update active states on buttons
+                navTriggers.forEach(btn => {
+                    if(btn.dataset.target === targetId) {
+                        btn.classList.add('text-gray-900', 'dark:text-white');
+                        if(!btn.classList.contains('nav-trigger')) btn.classList.add('bg-gray-100', 'dark:bg-white/5');
+                    } else {
+                        btn.classList.remove('text-gray-900', 'dark:text-white');
+                        if(!btn.classList.contains('nav-trigger')) btn.classList.remove('bg-gray-100', 'dark:bg-white/5');
+                    }
+                });
+
+                // Update tab visibility
+                tabContents.forEach(tab => {
+                    if (tab.id === 'tab-' + targetId) {
+                        tab.style.display = 'block';
+                        // Tiny timeout to allow display:block to apply before changing opacity for transition
+                        setTimeout(() => tab.classList.add('active'), 10);
+                    } else {
+                        tab.classList.remove('active');
+                        setTimeout(() => {
+                            if(!tab.classList.contains('active')) tab.style.display = 'none';
+                        }, 400); // Matches CSS transition duration
+                    }
+                });
+
+                // Close mobile menu if open
+                mobileNav.classList.add('translate-x-full');
+                
+                // Scroll to top
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                
+                // Re-trigger scroll animations for the new tab
+                setTimeout(initScrollAnimations, 100);
+            }
+
+            navTriggers.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    if(btn.dataset.target) switchTab(btn.dataset.target);
+                });
+            });
+
+            // ── Scroll Reveal Animations ──
+            function initScrollAnimations() {
+                const revealElements = document.querySelectorAll('.reveal-up');
+                const observer = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            entry.target.classList.add('is-visible');
+                            observer.unobserve(entry.target); // Only animate once
+                        }
+                    });
+                }, { threshold: 0.1, rootMargin: "0px 0px -50px 0px" });
+
+                revealElements.forEach(el => observer.observe(el));
+            }
+            initScrollAnimations();
+
+            // ── Counter Animations ──
+            const countElements = document.querySelectorAll('.count-up');
+            const countObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const el = entry.target;
+                        const target = parseFloat(el.getAttribute('data-target'));
+                        const suffix = el.getAttribute('data-suffix') || '';
+                        let start = 0;
+                        const duration = 2000;
+                        let startTime = null;
+
+                        function animationStep(timestamp) {
+                            if (!startTime) startTime = timestamp;
+                            const progress = Math.min((timestamp - startTime) / duration, 1);
+                            // Ease out cubic
+                            const ease = 1 - Math.pow(1 - progress, 3);
+                            const current = ease * target;
+                            
+                            el.textContent = Math.floor(current) + suffix;
+
+                            if (progress < 1) {
+                                window.requestAnimationFrame(animationStep);
+                            } else {
+                                el.textContent = target + suffix;
+                            }
+                        }
+                        window.requestAnimationFrame(animationStep);
+                        countObserver.unobserve(el);
+                    }
+                });
+            }, { threshold: 0.5 });
+            
+            countElements.forEach(el => countObserver.observe(el));
+
+            // ── FAQ Accordion ──
+            const faqButtons = document.querySelectorAll('.faq-item button');
+            faqButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const content = button.nextElementSibling;
+                    const icon = button.querySelector('i');
+                    const isOpen = content.style.maxHeight;
+
+                    // Close all others
+                    document.querySelectorAll('.faq-item > div').forEach(div => {
+                        div.style.maxHeight = null;
+                        div.previousElementSibling.querySelector('i').classList.remove('rotate-180');
+                    });
+
+                    // Open clicked if it was closed
+                    if (!isOpen) {
+                        content.style.maxHeight = content.scrollHeight + "px";
+                        icon.classList.add('rotate-180');
+                    }
+                });
+            });
+
+        });
+    </script>
+</body>
+</html>
